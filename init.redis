@@ -1,0 +1,76 @@
+#!/bin/sh
+CONF="/usr/local/redis/redis.conf"
+REDIS_PORT=$(cat $CONF |grep port|grep -v '#'|awk '{print $2}')
+REDIS_PASS=$(cat $CONF |grep requirepass|grep -v '#'|awk '{print $2}')
+REDIS_HOST=$(cat $CONF |grep bind|grep -v '#'|awk '{print $2}')
+if [ "$REDIS_PASS" != "" ];then
+	REDIS_PASS=" -a $REDIS_PASS"
+fi
+#if [ -f "/www/server/redis/start.pl" ];then
+#	STAR_PORT=$(cat /www/server/redis/start.pl)
+#else
+#	STAR_PORT="6379"
+#fi
+EXEC=/usr/local/bin/redis-server
+CLIEXEC="/usr/local/bin/redis-cli -h ${REDIS_HOST} -p ${STAR_PORT}${REDIS_PASS}"
+PIDFILE=/var/run/redis_6379.pid
+
+redis_start(){
+	if [ -f "/var/run/redis_6379.pid" ]; then
+		ps -p $(cat ${PIDFILE}) > /dev/null 2>&1
+		if [ $? -ne "0" ]; then
+			echo Redis is not running, buy pid file is exits ${PIDFILE}
+			exit 1
+		else
+			echo "redis is running! ($(cat ${PIDFILE}))"
+			exit 0
+		fi
+	fi
+	echo "Starting redis server..."
+	sudo -u redis $EXEC $CONF
+	#echo ${REDIS_PORT} > /www/server/redis/start.pl
+	echo "Starting redis success!"
+}
+redis_status(){
+	if [ -f "/var/run/redis_6379.pid" ]; then
+		ps -p $(cat ${PIDFILE}) > /dev/null 2>&1
+		if [ $? -ne "0" ]; then
+			echo "Redis is not running, buy pid file is exits ${PIDFILE}"
+			exit 1
+		else
+			echo "redis is running! ($(cat ${PIDFILE}))"
+			exit 0
+		fi
+	else
+		echo "redis is stopped"
+		exit 0
+	fi
+}
+redis_stop(){
+	echo "Stopping ..."
+	$CLIEXEC shutdown
+	sleep 1
+	pkill -9 redis-server
+	rm -f ${PIDFILE}
+	echo "Redis stopped"
+}
+
+case "$1" in
+	start)
+		redis_start
+		;;
+	stop)
+		redis_stop
+		;;
+	status)
+		redis_status
+		;;
+	restart|reload)
+		redis_stop
+		sleep 0.3
+		redis_start
+		;;
+	*)
+		echo "Please use start or stop as first argument"
+		;;
+esac
