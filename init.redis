@@ -27,7 +27,7 @@ redis_start(){
 		fi
 	fi
 	echo "Starting redis server..."
-	sudo -u redis $EXEC $CONF
+	sudo -u root $EXEC $CONF
 	#echo ${REDIS_PORT} > /www/server/redis/start.pl
 	echo "Starting redis success!"
 }
